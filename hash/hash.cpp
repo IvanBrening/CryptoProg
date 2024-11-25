@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -16,9 +17,11 @@ int main(int argc, char* argv[]) {
     std::string hash;
 
     // Считываем содержимое файла
-    std::ifstream file(filename);
+    std::ifstream file(filename, std::ios::binary);
     if (file) {
-        std::getline(file, file_content);
+        std::ostringstream ss;
+        ss << file.rdbuf();  // Считываем весь файл в строковый поток
+        file_content = ss.str();
         file.close();
     } else {
         std::cerr << "Error reading file: " << filename << std::endl;
@@ -26,16 +29,17 @@ int main(int argc, char* argv[]) {
     }
 
     try {
+        // Используем SHA-256 для хэширования
         CryptoPP::SHA256 sha;
         CryptoPP::StringSource(file_content, true,
             new CryptoPP::HashFilter(sha,
                 new CryptoPP::HexEncoder(
-                    new CryptoPP::StringSink(hash), false
+                    new CryptoPP::StringSink(hash), false // false — без пробела между байтами
                 )
             )
         );
 
-        std::cout << "Hash: " << hash << std::endl;
+        std::cout << "SHA-256 Hash: " << hash << std::endl;
     } catch (const CryptoPP::Exception& e) {
         std::cerr << e.what() << std::endl;
         return 1;
@@ -43,5 +47,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-
