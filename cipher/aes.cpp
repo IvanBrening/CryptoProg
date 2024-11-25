@@ -14,20 +14,32 @@ void encrypt(const std::string& inputFile, const std::string& outputFile, const 
     CryptoPP::SecByteBlock key(CryptoPP::AES::DEFAULT_KEYLENGTH);
     CryptoPP::SecByteBlock iv(CryptoPP::AES::BLOCKSIZE);
 
+    // Случайная генерация соли
+    CryptoPP::AutoSeededRandomPool rng;
+    CryptoPP::SecByteBlock salt(16); // 16 байт для соли
+    rng.GenerateBlock(salt, salt.size());
+
     // Используем HKDF для вывода ключа из пароля
     CryptoPP::HKDF<CryptoPP::SHA256> hkdf;
-    hkdf.DeriveKey(key, key.size(), 
+    hkdf.DeriveKey(key, key.size(),
                    reinterpret_cast<const CryptoPP::byte*>(password.data()), password.size(),
-                   reinterpret_cast<const CryptoPP::byte*>("salt"), 4,
+                   salt, salt.size(),
                    nullptr, 0); // Параметры info не используются
+
+    // Случайная генерация IV
+    rng.GenerateBlock(iv, iv.size());
 
     // Создаем шифратор в режиме CBC
     CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryption(key, key.size(), iv);
 
     // Открытие входного и выходного файлов
+    CryptoPP::FileSink fileSink(outputFile.c_str());
+    fileSink.Put(iv, iv.size());  // Запись IV в начало выходного файла
+
     CryptoPP::FileSource fs(inputFile.c_str(), true, new CryptoPP::StreamTransformationFilter(
         encryption,
-        new CryptoPP::FileSink(outputFile.c_str())
+        new CryptoPP::Redirector(fileSink),
+        CryptoPP::BlockPaddingSchemeDef::PKCS_PADDING  // Указание паддинга
     ));
 }
 
@@ -37,11 +49,20 @@ void decrypt(const std::string& inputFile, const std::string& outputFile, const 
     CryptoPP::SecByteBlock key(CryptoPP::AES::DEFAULT_KEYLENGTH);
     CryptoPP::SecByteBlock iv(CryptoPP::AES::BLOCKSIZE);
 
+    // Считываем IV из начала входного файла
+    CryptoPP::FileSource fileSource(inputFile.c_str(), false);
+    fileSource.Get(iv, iv.size());
+
+    // Случайная генерация соли (для безопасности, если она передается отдельно)
+    CryptoPP::AutoSeededRandomPool rng;
+    CryptoPP::SecByteBlock salt(16); // Пример соли (на самом деле она должна быть передана или извлечена)
+    rng.GenerateBlock(salt, salt.size());
+
     // Используем HKDF для вывода ключа из пароля
     CryptoPP::HKDF<CryptoPP::SHA256> hkdf;
-    hkdf.DeriveKey(key, key.size(), 
+    hkdf.DeriveKey(key, key.size(),
                    reinterpret_cast<const CryptoPP::byte*>(password.data()), password.size(),
-                   reinterpret_cast<const CryptoPP::byte*>("salt"), 4,
+                   salt, salt.size(),
                    nullptr, 0); // Параметры info не используются
 
     // Создаем дешифратор в режиме CBC
@@ -50,7 +71,8 @@ void decrypt(const std::string& inputFile, const std::string& outputFile, const 
     // Открытие входного и выходного файлов
     CryptoPP::FileSource fs(inputFile.c_str(), true, new CryptoPP::StreamTransformationFilter(
         decryption,
-        new CryptoPP::FileSink(outputFile.c_str())
+        new CryptoPP::FileSink(outputFile.c_str()),
+        CryptoPP::BlockPaddingSchemeDef::PKCS_PADDING  // Указание паддинга
     ));
 }
 
@@ -77,12 +99,9 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     } catch (const CryptoPP::Exception& e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
 
     return 0;
 }
-
-
-
