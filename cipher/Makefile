@@ -1,15 +1,20 @@
+# Имя исполняемого файла
+TARGET = hash_file
+
+# Компилятор и флаги
 CXX = g++
-CXXFLAGS = -std=c++11 -I/usr/include/cryptopp
-LDFLAGS = -lcryptopp
+CXXFLAGS = -Wall -std=c++11
+LDFLAGS = -lssl -lcrypto
 
-SRC = aes.cpp
-OUT = aes
+# Список исходных файлов
+SRC = hash_file.cpp
 
-all: $(OUT)
+# Правило сборки
+all: $(TARGET)
 
-$(OUT): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(OUT) $(LDFLAGS)
+$(TARGET): $(SRC)
+	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
+# Очистка
 clean:
-	rm -f $(OUT)
-
+	rm -f $(TARGET)

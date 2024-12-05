@@ -1,29 +1,20 @@
-# Имя исполнимого файла
-TARGET = hash
+# Имя исполняемого файла
+TARGET = encrypt_decrypt_file
 
-# Исходный код
-SRC = hash.cpp
+# Компилятор и флаги
+CXX = g++
+CXXFLAGS = -Wall -std=c++11
+LDFLAGS = -lssl -lcrypto
 
-# Папка с заголовочными файлами библиотеки Crypto++
-INCLUDE = /usr/include/cryptopp
+# Список исходных файлов
+SRC = encrypt_decrypt_file.cpp
 
-# Папка с библиотеками Crypto++
-LIBS = /usr/lib
-
-# Флаги компилятора
-CXXFLAGS = -std=c++11 -I$(INCLUDE)
-
-# Линковка с библиотекой Crypto++
-LDFLAGS = -lcryptopp
-
-# Правила для сборки
+# Правило сборки
 all: $(TARGET)
 
 $(TARGET): $(SRC)
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
 
-# Очистка промежуточных файлов
+# Очистка
 clean:
 	rm -f $(TARGET)
-
-
